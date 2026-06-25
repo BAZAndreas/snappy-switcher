@@ -19,6 +19,7 @@ static void set_defaults(Config *cfg) {
   cfg->follow_monitor = false;
   cfg->show_workspace_badge = true;
   cfg->sticky_mode = false;
+  cfg->ignore_pinned = false;
   /* Default Fallback / Debug Colors (0xRRGGBBAA) */
   cfg->background = 0xff0000ff;
   cfg->card_bg = 0x0000ffff;
@@ -106,6 +107,9 @@ static void apply_value(Config *cfg, const char *section, const char *key,
           (strcasecmp(val, "true") == 0 || strcmp(val, "1") == 0);
     } else if (strcasecmp(key, "sticky_mode") == 0) {
       cfg->sticky_mode =
+          (strcasecmp(val, "true") == 0 || strcmp(val, "1") == 0);
+    } else if (strcasecmp(key, "ignore_pinned") == 0) {
+      cfg->ignore_pinned =
           (strcasecmp(val, "true") == 0 || strcmp(val, "1") == 0);
     }
   }
