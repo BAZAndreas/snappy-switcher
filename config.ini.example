@@ -32,6 +32,14 @@ show_workspace_badge = true
 # false = Immediately jump to the previous window (index 1)
 sticky_mode = false
 
+# Ignore Pinned: exclude pinned windows from the switcher list.
+# A pinned window is floating, shown on every workspace, and always-on-top
+# (e.g. a browser Picture-in-Picture mini-player). Since it's already visible
+# on every workspace, cycling to it in an MRU switcher does nothing useful.
+# true  = hide pinned windows from the switcher
+# false = list pinned windows like any other window (default)
+ignore_pinned = false
+
 # ┌───────────────────────────────────────────────────────────────────────────┐
 # │                              THEME SETTINGS                               │
 # └───────────────────────────────────────────────────────────────────────────┘

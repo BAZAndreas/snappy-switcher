@@ -16,6 +16,7 @@ typedef struct {
   int focus_history_id; /* Focus history ID (0 = most recently focused) */
   bool is_active;       /* Whether this window is currently focused */
   bool is_floating;     /* Whether this window is floating (not tiled) */
+  bool is_pinned;       /* Whether this window is pinned (shown on all workspaces, always on top) */
   int group_count;      /* Number of windows in this group */
 } WindowInfo;
 

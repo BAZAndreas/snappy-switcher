@@ -501,6 +501,7 @@ int wlr_get_windows(AppState *state, Config *config, bool is_linear) {
 
     info.is_active = curr->is_active;
     info.is_floating = 0;
+    info.is_pinned = false; /* wlroots backend has no pin concept */
     info.group_count = 1;
     info.focus_history_id = curr->is_active ? 0 : info.focus_history_id;
 

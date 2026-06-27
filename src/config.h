@@ -59,6 +59,7 @@ typedef struct {
   bool show_workspace_badge;
   ViewMode mode;
   bool sticky_mode;
+  bool ignore_pinned; /* Exclude pinned (always-on-top, all-workspace) windows, e.g. PiP */
 
 } Config;
 

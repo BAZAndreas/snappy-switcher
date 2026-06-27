@@ -335,7 +335,8 @@ static int get_active_workspace_id(void) {
  *            workspace.id matches this value.  Special workspaces
  *            (id == -1) are always excluded regardless.
  */
-static int parse_clients(const char *json_str, AppState *state, int target_ws) {
+static int parse_clients(const char *json_str, AppState *state, int target_ws,
+                         bool ignore_pinned) {
   struct json_object *root = json_tokener_parse(json_str);
   if (!root || !json_object_is_type(root, json_type_array)) {
     if (root)
@@ -348,7 +349,7 @@ static int parse_clients(const char *json_str, AppState *state, int target_ws) {
     struct json_object *obj = json_object_array_get_idx(root, i);
     struct json_object *ws_obj = NULL, *ws_id = NULL, *ws_name = NULL,
                        *addr = NULL, *title = NULL, *cls = NULL,
-                       *focus = NULL, *floating = NULL;
+                       *focus = NULL, *floating = NULL, *pinned = NULL;
 
     if (!json_object_object_get_ex(obj, "workspace", &ws_obj))
       continue;
@@ -371,6 +372,14 @@ static int parse_clients(const char *json_str, AppState *state, int target_ws) {
     json_object_object_get_ex(obj, "class", &cls);
     json_object_object_get_ex(obj, "focusHistoryID", &focus);
     json_object_object_get_ex(obj, "floating", &floating);
+    json_object_object_get_ex(obj, "pinned", &pinned);
+
+    /* Pinned filter: skip always-on-top, all-workspace overlays (e.g. browser
+     * Picture-in-Picture) when ignore_pinned is set. A pinned window is visible
+     * on every workspace already, so cycling to it in an MRU switcher is a no-op. */
+    bool is_pinned = pinned ? json_object_get_boolean(pinned) : false;
+    if (ignore_pinned && is_pinned)
+      continue;
 
     WindowInfo info;
     info.address = safe_strdup(json_object_get_string(addr));
@@ -381,6 +390,7 @@ static int parse_clients(const char *json_str, AppState *state, int target_ws) {
     info.focus_history_id = focus ? json_object_get_int(focus) : 9999;
     info.is_active = (info.focus_history_id == 0);
     info.is_floating = floating ? json_object_get_boolean(floating) : false;
+    info.is_pinned = is_pinned;
     info.group_count = 1;
 
     app_state_add(state, &info);
@@ -413,6 +423,7 @@ static void aggregate_context(AppState *state) {
       out[out_count].focus_history_id = win->focus_history_id;
       out[out_count].is_active = win->is_active;
       out[out_count].is_floating = true;
+      out[out_count].is_pinned = win->is_pinned;
       out[out_count].group_count = 1;
       out_count++;
     } else {
@@ -436,6 +447,7 @@ static void aggregate_context(AppState *state) {
         out[out_count].focus_history_id = win->focus_history_id;
         out[out_count].is_active = win->is_active;
         out[out_count].is_floating = false;
+        out[out_count].is_pinned = win->is_pinned;
         out[out_count].group_count = 1;
         out_count++;
       }
@@ -468,7 +480,7 @@ int update_window_list(AppState *state, Config *cfg, bool is_linear) {
   if (!json)
     return -1;
 
-  if (parse_clients(json, state, target_ws) < 0) {
+  if (parse_clients(json, state, target_ws, cfg->ignore_pinned) < 0) {
     free(json);
     return -1;
   }
