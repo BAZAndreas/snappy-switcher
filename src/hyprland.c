@@ -331,12 +331,14 @@ static int get_active_workspace_id(void) {
 /*
  * Parse the Hyprland client list JSON into AppState.
  *
- * target_ws: if != WS_FILTER_NONE, only include windows whose
- *            workspace.id matches this value.  Special workspaces
- *            (id == -1) are always excluded regardless.
+ * target_ws:       if != WS_FILTER_NONE, only include windows whose
+ *                  workspace.id matches this value.
+ * ignore_pinned:   skip pinned (always-on-top, all-workspace) windows.
+ * ignore_special:  skip windows on special (scratchpad) workspaces
+ *                  (workspace id < 0).
  */
 static int parse_clients(const char *json_str, AppState *state, int target_ws,
-                         bool ignore_pinned) {
+                         bool ignore_pinned, bool ignore_special) {
   struct json_object *root = json_tokener_parse(json_str);
   if (!root || !json_object_is_type(root, json_type_array)) {
     if (root)
@@ -358,8 +360,11 @@ static int parse_clients(const char *json_str, AppState *state, int target_ws,
 
     int wid = json_object_get_int(ws_id);
 
-    /* Always skip special workspaces (id == -1) */
-    if (wid == -1)
+    /* Skip special workspaces (negative IDs) when configured.
+     * Hyprland assigns id < 0 to ALL special workspaces — both the
+     * default "special" (id -1) and named ones like "special:term"
+     * (id -99, -1337, etc.). */
+    if (ignore_special && wid < 0)
       continue;
 
     /* Workspace filter: skip windows not on the target workspace */
@@ -480,7 +485,8 @@ int update_window_list(AppState *state, Config *cfg, bool is_linear) {
   if (!json)
     return -1;
 
-  if (parse_clients(json, state, target_ws, cfg->ignore_pinned) < 0) {
+  if (parse_clients(json, state, target_ws, cfg->ignore_pinned,
+                     cfg->ignore_special) < 0) {
     free(json);
     return -1;
   }

@@ -67,7 +67,9 @@ sequenceDiagram
     
     Note over D: Parse window data
 
-        Note over D: Extract per window:<br/>address (unique ID)<br/>title<br/>class (app name)<br/>workspace.id<br/>workspace.name<br/>focusHistoryID<br/>floating (bool)
+        Note over D: Extract per window:<br/>address (unique ID)<br/>title<br/>class (app name)<br/>workspace.id<br/>workspace.name<br/>focusHistoryID<br/>floating (bool)<br/>pinned (bool)
+    
+    Note over D: Filter: skip special workspaces<br/>(id < 0) when ignore_special=true,<br/>skip pinned when ignore_pinned=true
     
 ```
 
@@ -78,10 +80,11 @@ sequenceDiagram
 | `address` | `string` | Unique window identifier (hex) |
 | `title` | `string` | Window title text |
 | `class` | `string` | App class name (e.g., `kitty`, `firefox`) |
-| `workspace.id` | `int` | Workspace number |
+| `workspace.id` | `int` | Workspace number (negative for special workspaces) |
 | `workspace.name` | `string` | Workspace name (e.g., `"1"`, `"music"`, `"special:scratchpad"`) |
 | `focusHistoryID` | `int` | MRU position (0 = most recent) |
 | `floating` | `bool` | Tiled or floating window |
+| `pinned` | `bool` | Pinned (always-on-top, visible on all workspaces) |
 
 ---
 
@@ -226,7 +229,7 @@ flowchart TB
 | **Grid Layout** | Dynamic columns up to `max_cols` |
 | **Stack Effect** | Shadow cards behind grouped windows |
 | **Count Badge** | Bottom-right circle badge for groups |
-| **Workspace Badge** | Bottom-left pill showing workspace ID, named workspace letter, or `[S]` for special workspaces. Floating windows get an `F:` prefix. |
+| **Workspace Badge** | Bottom-left pill showing workspace ID, named workspace letter, `[S]` for the default special workspace, or the first letter of named special workspaces (e.g. `[F]` for `special:ffr`). Floating windows get an `F:` prefix/suffix. |
 | **Selection Glow** | Highlighted border on selected card |
 | **Error Overlay** | Red-bordered banner for config mismatch errors (see below). Size and font are configurable via `error_width`, `error_height`, `error_font_size`. |
 

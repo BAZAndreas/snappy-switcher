@@ -240,8 +240,12 @@ static int letter_tracker_assign(LetterTracker *lt, const char *name) {
  * Format a workspace tag string for display.
  *
  * Rules (strict priority):
- *   1. Special workspaces (id < 0 or name starts with "special:"):
- *      -> "[S]" or "[S:F]" if floating
+ *   1. Special workspaces (name starts with "special:"):
+ *      - Default unnamed ("special:special"):
+ *        -> "[S]" or "[S:F]" if floating
+ *      - Named (e.g. "special:ffr"):
+ *        -> First letter of name after "special:", uppercased
+ *        -> "[F]" / "[F:F]" if floating (same dedup rules as Rule 3)
  *
  *   2. Standard numbered workspaces (name is a pure integer):
  *      -> "[N]" or "[F:N]" if floating
@@ -261,7 +265,40 @@ static char *format_workspace_tag(WindowInfo *win, LetterTracker *lt) {
 
  /* --- Rule 1: Special workspaces --- */
   if (name && strncmp(name, "special:", 8) == 0) {
-    return win->is_floating ? strdup("[S:F]") : strdup("[S]");
+    const char *special_name = name + 8; /* part after "special:" */
+
+    /* Default unnamed special workspace (empty name or "special") */
+    if (!*special_name || strcmp(special_name, "special") == 0) {
+      return win->is_floating ? strdup("[S:F]") : strdup("[S]");
+    }
+
+    /* Named special workspace: use first letter of the name part,
+     * routed through the same LetterTracker as regular named workspaces
+     * so that e.g. "special:ffr" and "special:foo" get "[F]" / "[F:1]". */
+    char sletter = toupper((unsigned char)special_name[0]);
+    int sidx = letter_tracker_assign(lt, special_name);
+
+    if (sidx > 100)
+      return strdup("Fuck you user, pick a damn name with different letters");
+    if (sidx == 100) {
+      char buf[32];
+      snprintf(buf, sizeof(buf), "[%c:\xe2\x88\x9e]", sletter);
+      return strdup(buf);
+    }
+    if (sidx == 0) {
+      char buf[16];
+      if (win->is_floating)
+        snprintf(buf, sizeof(buf), "[%c:F]", sletter);
+      else
+        snprintf(buf, sizeof(buf), "[%c]", sletter);
+      return strdup(buf);
+    }
+    char buf[32];
+    if (win->is_floating)
+      snprintf(buf, sizeof(buf), "[%c:%d:F]", sletter, sidx);
+    else
+      snprintf(buf, sizeof(buf), "[%c:%d]", sletter, sidx);
+    return strdup(buf);
   }
 
   /* --- Rule 2: Standard numbered workspaces --- */

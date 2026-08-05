@@ -110,6 +110,8 @@ flowchart LR
 | `show_workspace_badge` | `true`, `false` | `true` | Show workspace indicator badge on each card |
 | `follow_monitor` | `true`, `false` | `false` | Panel follows the focused monitor |
 | `sticky_mode` | `true`, `false` | `false` | When true, opening the switcher retains focus on the currently active window instead of immediately jumping to the previous window. |
+| `ignore_pinned` | `true`, `false` | `false` | Exclude pinned (always-on-top, all-workspace) windows like PiP from the switcher. |
+| `ignore_special` | `true`, `false` | `true` | Exclude windows on special (scratchpad) workspaces. Covers both unnamed (`special`) and named (`special:term`, `special:magic`, etc.) workspaces. |
 
 ### Mode Comparison
 
@@ -138,10 +140,11 @@ The renderer inspects each window's `workspace_id` and `workspace_name` (pulled 
 | **Named** (1st occurrence) | `[L]` | `[M]` | First named workspace starting with "M" |
 | **Named** (2nd+ occurrence) | `[L:n]` | `[M:1]` | Second named workspace starting with "M" |
 | **Named + Floating** | `[L:F]` | `[M:F]` | Floating window on a named workspace |
-| **Special** | `[S]` | `[S]` | Hyprland special workspace (scratchpad, etc.) |
-| **Special + Floating** | `[S:F]` | `[S:F]` | Floating window on a special workspace |
+| **Special** (default) | `[S]` | `[S]` | Default unnamed special workspace (`special:special`) |
+| **Special** (named) | `[L]` | `[F]` | Named special workspace (e.g. `special:ffr` → first letter `F`) |
+| **Special + Floating** | `[S:F]` / `[L:F]` | `[S:F]` / `[F:F]` | Floating window on a special workspace |
 
-> The badge shows a compact label so you always know *where* a window belongs ~ a number for standard workspaces, a letter for named ones, and `S` for special/scratchpad workspaces. If the window is floating, it gets an extra `F:` prefix so you can tell it apart from tiled windows at a glance.
+> The badge shows a compact label so you always know *where* a window belongs ~ a number for standard workspaces, a letter for named ones, `S` for the default special workspace, and the first letter of the name for named special workspaces (e.g. `special:ffr` → `[F]`). If the window is floating, it gets an extra `F:` prefix/suffix so you can tell it apart from tiled windows at a glance.
 
 ```ini
 [general]

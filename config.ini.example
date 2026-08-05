@@ -40,6 +40,13 @@ sticky_mode = false
 # false = list pinned windows like any other window (default)
 ignore_pinned = false
 
+# Ignore Special Workspaces: exclude windows on special (scratchpad) workspaces.
+# Special workspaces are toggled on/off and often hold dropdown terminals,
+# scratchpads, or other transient tools you don't want in the Alt-Tab flow.
+# true  = hide special workspace windows from the switcher (default)
+# false = list special workspace windows like any other window
+ignore_special = true
+
 # ┌───────────────────────────────────────────────────────────────────────────┐
 # │                              THEME SETTINGS                               │
 # └───────────────────────────────────────────────────────────────────────────┘

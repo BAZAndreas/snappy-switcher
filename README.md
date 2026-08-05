@@ -34,6 +34,7 @@
 | **Dual-Track Dismiss** | Dismiss-on-release supports both XKB modifier masks (`alt`, `super`, `ctrl`, `shift`) and raw keycode tracking (`space`, `1`, `Return`, etc.). |
 | **Rapid-Tap Safe** | The input engine distinguishes genuine config mismatches from rapid taps by inspecting the XKB depressed-modifier bitmask, eliminating false-alarm error banners. |
 | **15 Themes** | Ships with Catppuccin (Mocha/Latte/Frappe), Dracula, Nord, Nordic, Tokyo Night, Gruvbox, Rose Pine, Cyberpunk, Liquid Glass, and more. Full `.ini` customization. |
+| **Special Workspace Filter** | Excludes scratchpad/dropdown windows (`special:*`) from the switcher by default. Configurable via `ignore_special`. |
 | **Crash Recovery** | Socket takeover protocol ensures seamless daemon restart. `POLLHUP` detection prevents Wayland client death spirals if the compositor exits. |
 
 ---
@@ -369,6 +370,7 @@ mode = context
 follow_monitor = true
 show_workspace_badge = true
 sticky_mode = false
+ignore_special = false
 [theme]
 name = stormlight.ini
 border_width = 2
