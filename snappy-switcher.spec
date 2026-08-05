@@ -66,7 +66,7 @@ install -Dpm 644 docs/ARCHITECTURE.md %{buildroot}%{_docdir}/%{name}/ARCHITECTUR
 install -Dpm 644 docs/CONFIGURATION.md %{buildroot}%{_docdir}/%{name}/CONFIGURATION.md
 install -Dpm 644 config.ini.example %{buildroot}%{_docdir}/%{name}/config.ini.example
 
-# Systemd user service (optional)
+# Systemd user service
 install -Dpm 644 snappy-switcher.service %{buildroot}%{_userunitdir}/snappy-switcher.service
 
 %files
@@ -91,7 +91,7 @@ install -Dpm 644 snappy-switcher.service %{buildroot}%{_userunitdir}/snappy-swit
 %doc %{_docdir}/%{name}/CONFIGURATION.md
 %doc %{_docdir}/%{name}/config.ini.example
 
-# Systemd service
+# Systemd user service
 %{_userunitdir}/snappy-switcher.service
 
 %changelog

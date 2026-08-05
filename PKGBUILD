@@ -56,8 +56,6 @@ package() {
   install -Dm644 docs/CONFIGURATION.md "$pkgdir/usr/share/doc/$pkgname/CONFIGURATION.md"
   install -Dm644 config.ini.example "$pkgdir/usr/share/doc/$pkgname/config.ini.example"
 
-  # 5. Systemd Service (Optional)
-  if [ -f "snappy-switcher.service" ]; then
-    install -Dm644 snappy-switcher.service "$pkgdir/usr/lib/systemd/user/snappy-switcher.service"
-  fi
+  # 5. Systemd User Service
+  install -Dm644 snappy-switcher.service "$pkgdir/usr/lib/systemd/user/snappy-switcher.service"
 }
