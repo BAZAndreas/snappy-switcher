@@ -373,7 +373,8 @@ sticky_mode = false
 ignore_special = false
 [theme]
 name = stormlight.ini
-border_width = 2
+border_width = 1
+card_border_width = 2
 corner_radius = 15
 [layout]
 card_width = 145
