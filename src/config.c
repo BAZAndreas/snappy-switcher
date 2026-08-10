@@ -33,7 +33,8 @@ static void set_defaults(Config *cfg) {
   cfg->badge_text_color = 0xff0000ff;
   cfg->badge_bg_selected = 0xaa00ffff;
   cfg->badge_text_color_selected = 0xffff00ff;
-  cfg->border_width = 2;
+  cfg->border_width = 1;
+  cfg->card_border_width = 2;
   cfg->card_radius = 15;
 
   /* Layout */
@@ -146,6 +147,8 @@ static void apply_value(Config *cfg, const char *section, const char *key,
       cfg->has_badge_text_color_selected = true;
     } else if (strcasecmp(key, "border_width") == 0)
       cfg->border_width = atoi(val);
+    else if (strcasecmp(key, "card_border_width") == 0)
+      cfg->card_border_width = atoi(val);
     else if (strcasecmp(key, "corner_radius") == 0)
       cfg->card_radius = atoi(val);
   }
