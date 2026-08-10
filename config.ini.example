@@ -90,7 +90,8 @@ name = snappy-slate.ini
 # badge_text_color = #cdd6f4ff # Group count badge number
 
 # Border and corner styling
-border_width = 2
+border_width = 1
+card_border_width = 2
 corner_radius = 15
 
 # ┌───────────────────────────────────────────────────────────────────────────┐

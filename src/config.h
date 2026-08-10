@@ -32,6 +32,7 @@ typedef struct {
   int card_height;
   int card_gap;
   int card_radius;
+  int card_border_width;
   int border_width;
   int padding;
   int max_cols;

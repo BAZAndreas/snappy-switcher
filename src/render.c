@@ -402,7 +402,7 @@ static void draw_card(cairo_t *cr, WindowInfo *win, double x, double y,
   /* Border */
   if (selected) {
     cairo_set_source_rgba(cr, brd_r, brd_g, brd_b, brd_a);
-    cairo_set_line_width(cr, cfg ? cfg->border_width : 2);
+    cairo_set_line_width(cr, cfg ? cfg->card_border_width : 2);
     draw_rounded_rect(cr, x, y, w, h, r);
     cairo_stroke(cr);
   }
@@ -821,7 +821,12 @@ void render_ui(AppState *state, uint32_t logical_width, uint32_t logical_height,
   if (cfg)
     color_to_rgba(cfg->border_color, &r, &g, &b, &a);
   cairo_set_source_rgba(cr, r, g, b, 0.3);
-  cairo_set_line_width(cr, 1);
+
+  /* old line was `cairo_set_line_width(cr, 1)`
+   * the `1` magic number was taken from that
+   * -Zach */
+  int ui_border_width = cfg ? cfg->border_width : 1;
+  cairo_set_line_width(cr, ui_border_width);
   draw_rounded_rect(cr, 0.5, 0.5, logical_width - 1, logical_height - 1,
                     rad + 4);
   cairo_stroke(cr);

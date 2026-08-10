@@ -198,6 +198,7 @@ graph TB
 | Key | Default | Description |
 |-----|---------|-------------|
 | `border_width` | `2` | Border thickness (px) |
+| `card_border_width` | `1` | Card border thickness (px) |
 | `corner_radius` | `15` | Rounded corner radius (px) |
 
 ```ini
