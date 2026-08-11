@@ -335,9 +335,8 @@ static void show_switcher(bool is_linear) {
     if (config && config->sticky_mode) {
       app_state.selected_index = active_idx;
     } else {
-      app_state.selected_index = (app_state.count > 1)
-          ? (active_idx + 1) % app_state.count
-          : 0;
+      app_state.selected_index =
+          (app_state.count > 1) ? (active_idx + 1) % app_state.count : 0;
     }
   } else {
     /* MRU mode: active window is always index 0 */
@@ -377,18 +376,24 @@ static void select_and_hide(void) {
 }
 
 static void handle_command(const char *payload) {
-  /* Protocol: CMD:MOD:WORKSPACE_FLAG:SOURCE:SILENT_FLAG:LINEAR_FLAG
+  /* Protocol: CMD:MOD:WORKSPACE_FLAG:SOURCE:SILENT_FLAG:LINEAR_FLAG:PATH
    * Also supports legacy bare commands (e.g. "QUIT" from takeover)
-   * and 4/5-field payloads (SILENT_FLAG/LINEAR_FLAG default to "0"). */
+   * and 4/5-field payloads (SILENT_FLAG/LINEAR_FLAG default to "0").
+   * `PATH` is an optional flag that is used for --reload-config. Not required
+   * to send in every other command. */
   char cmd_buf[32] = {0};
   char mod_buf[64] = {0};
   char source_buf[16] = {0};
   char silent_buf[4] = {0};
   char linear_buf[4] = {0};
+
+  /* NOTE: unknown how big this should be. it is 1024 in `load_config_from()`, so i took that */
+  char path_buf[1024] = {0};
   int ws_flag = 0;
 
   /* Safe parse: use strtok_r with ':' delimiter */
-  char buf[256];
+  /* changed 256 -> 2048 because it's next power of 2 w/ the new 1024 path buf included */
+  char buf[2048];
   strncpy(buf, payload, sizeof(buf) - 1);
   buf[sizeof(buf) - 1] = '\0';
 
@@ -399,6 +404,7 @@ static void handle_command(const char *payload) {
   char *tok_src = strtok_r(NULL, ":", &saveptr);
   char *tok_sil = strtok_r(NULL, ":", &saveptr);
   char *tok_lin = strtok_r(NULL, ":", &saveptr);
+  char *tok_path = strtok_r(NULL, ":", &saveptr);
 
   if (!tok_cmd) {
     LOG("Malformed command: '%s'", payload);
@@ -416,6 +422,8 @@ static void handle_command(const char *payload) {
     strncpy(silent_buf, tok_sil, sizeof(silent_buf) - 1);
   if (tok_lin)
     strncpy(linear_buf, tok_lin, sizeof(linear_buf) - 1);
+  if (tok_path)
+    strncpy(path_buf, tok_path, sizeof(path_buf) - 1);
 
   bool is_silent = (strcmp(silent_buf, "1") == 0);
   bool is_linear = (strcmp(linear_buf, "1") == 0);
@@ -546,6 +554,17 @@ static void handle_command(const char *payload) {
         app_state.needs_render = true;
       }
     }
+    return;
+  }
+
+  if (strcmp(cmd_buf, CMD_RELOAD) == 0) {
+    LOG("Reloading config...");
+    free_config(config);
+    icons_cleanup();
+
+    config = load_config_from(path_buf); /* path buf will be NULL if none provided */
+    render_set_config(config);
+    icons_init(config->icon_theme, config->icon_fallback);
     return;
   }
 
@@ -955,23 +974,25 @@ static void print_help(const char *prog) {
          "[--silent] [--linear]\n\n",
          prog);
   printf("Options:\n");
-  printf("  --daemon           Start the switcher daemon\n");
-  printf("  --config, -c PATH  Use config file (daemon only)\n");
-  printf("  --help, -h         Show this help message\n\n");
+  printf("  --daemon             Start the switcher daemon\n");
+  printf("  --config, -c PATH    Use config file (daemon only)\n");
+  printf("  --help, -h           Show this help message\n\n");
+  /* NOTE: maybe change to 'Force reload config' if hot reloading ever gets implemented? */
+  printf("  --reload-config, -r  Reload config\n\n");
   printf("Commands (requires daemon running):\n");
-  printf("  next               Select next window\n");
-  printf("  prev               Select previous window\n");
-  printf("  toggle             Toggle the switcher visibility\n");
-  printf("  select             Activate the selected window\n");
-  printf("  hide               Hide the switcher\n");
-  printf("  quit               Terminate the daemon\n\n");
+  printf("  next                 Select next window\n");
+  printf("  prev                 Select previous window\n");
+  printf("  toggle               Toggle the switcher visibility\n");
+  printf("  select               Activate the selected window\n");
+  printf("  hide                 Hide the switcher\n");
+  printf("  quit                 Terminate the daemon\n\n");
   printf("Flags (with next, prev, toggle):\n");
-  printf("  --mod <key>        Dismiss key (alt, super, ctrl, shift, space, "
+  printf("  --mod <key>          Dismiss key (alt, super, ctrl, shift, space, "
          "etc.)\n");
-  printf("  --workspace        Filter windows to current workspace\n");
+  printf("  --workspace          Filter windows to current workspace\n");
   printf(
-      "  --silent           Instant MRU switch without UI (next/prev only)\n");
-  printf("  --linear           Use deterministic workspace/address sort "
+      "  --silent             Instant MRU switch without UI (next/prev only)\n");
+  printf("  --linear             Use deterministic workspace/address sort "
          "instead of MRU\n\n");
   printf("Examples:\n");
   printf("  %s --daemon &\n", prog);
@@ -1005,6 +1026,7 @@ int main(int argc, char **argv) {
   /* First pass: check for --help and --daemon */
   const char *config_path = NULL;
   bool daemon_mode = false;
+  bool reloading_config = false;
 
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
@@ -1021,10 +1043,31 @@ int main(int argc, char **argv) {
       }
       config_path = argv[++i];
     }
+
+    if (strcmp(argv[i], "--reload-config") == 0 || strcmp(argv[i], "-r") == 0) {
+      reloading_config = true;
+    }
   }
 
   if (daemon_mode)
     return run_daemon(config_path);
+
+  if (reloading_config) {
+    /* command structure: CMD:MOD:WORKSPACE_FLAG:SOURCE:SILENT_FLAG:LINEAR_FLAG:PATH */
+    if (!config_path) {
+      send_command(CMD_RELOAD);
+      return 0;
+    }
+
+    /* sizeof + 1024 = 1031; maybe make 2048 to match new buffer in `handle_command()`?*/
+    char full_command[sizeof(CMD_RELOAD) + 1024] = {0};
+    snprintf(full_command, sizeof(full_command),
+             "%s:alt:0:cli:0:0:%s",
+             CMD_RELOAD, config_path);
+    send_command(full_command);
+
+    return 0;
+  }
 
   /* Client mode: pass full argv for run_client to parse */
   return run_client(argc, argv);

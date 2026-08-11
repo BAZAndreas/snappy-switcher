@@ -244,17 +244,18 @@ Client commands are sent over a Unix domain socket at `/run/user/$UID/snappy-swi
 ### Wire Format
 
 ```
-CMD:MOD:WORKSPACE_FLAG:SOURCE:SILENT_FLAG:LINEAR_FLAG
+CMD:MOD:WORKSPACE_FLAG:SOURCE:SILENT_FLAG:LINEAR_FLAG:PATH
 ```
 
 | Field | Description | Examples |
 |-------|-------------|---------|
-| `CMD` | Command verb | `NEXT`, `PREV`, `TOGGLE`, `QUIT`, `HIDE`, `SELECT` |
+| `CMD` | Command verb | `NEXT`, `PREV`, `TOGGLE`, `QUIT`, `HIDE`, `SELECT`, `RELOAD` |
 | `MOD` | Dismiss key name | `ALT`, `SUPER`, `SPACE`, `1`, `none` |
 | `WORKSPACE_FLAG` | Filter to current workspace | `0` (off), `1` (on) |
 | `SOURCE` | Invocation origin | `cli` (terminal), `bind` (compositor keybind) |
 | `SILENT_FLAG` | Bypass the Cairo UI entirely | `0` (off), `1` (on) |
 | `LINEAR_FLAG` | Use deterministic sorting instead of MRU | `0` (off), `1` (on) |
+| `PATH` | Optional argument that is used to make --reload-config work with --config flags. | When reloading, pass either the path to load, or do not include `:PATH` section; it will then load from default location. |
 
 ### Source Detection
 
