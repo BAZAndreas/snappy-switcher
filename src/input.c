@@ -237,6 +237,17 @@ static void keyboard_enter(void *data, struct wl_keyboard *keyboard,
     if (any_dismiss_mod_held()) {
       enter_primed_modifier = true;
       LOG("Dismiss modifier confirmed in keyboard_enter");
+    } else if (keys->size == 0) {
+      /* Rapid alt-tab: the user released ALL keys (including the dismiss
+       * modifier) before the compositor granted us keyboard focus.
+       * With EXCLUSIVE interactivity, focus is guaranteed but may still
+       * arrive after a fast Alt+Tab release. Auto-dismiss immediately
+       * rather than waiting for a keyboard_modifiers event that would
+       * confirm the empty state — the key_up was already lost. */
+      LOG("Rapid alt-tab: no keys held at keyboard_enter, auto-dismissing");
+      if (on_alt_release)
+        on_alt_release();
+      return;
     }
   }
 
