@@ -65,6 +65,15 @@ static Backend *backend = NULL;
 /* Signal Handling */
 static volatile sig_atomic_t should_quit = 0;
 static volatile sig_atomic_t caught_signal = 0;
+
+/* Safety timeout: auto-dismiss the switcher if it gets stuck (e.g. keyboard
+ * focus never granted due to a competing exclusive overlay like a lock screen,
+ * or modifier release events lost due to compositor quirks).
+ * The timer resets on every user navigation action (Tab, arrows). */
+#define SAFETY_TIMEOUT_SEC 10
+static struct timespec watchdog_timestamp;
+static bool watchdog_active = false;
+
 static void signal_handler(int sig) {
   caught_signal = sig;
   should_quit = 1;
@@ -247,7 +256,7 @@ static void create_panel(void) {
     return;
   }
 
-  zwlr_layer_surface_v1_set_size(layer_surface, 1, 1); // 最小初始尺寸
+  zwlr_layer_surface_v1_set_size(layer_surface, 1, 1); // 最小初始尺寸 -Minimum initial size
   zwlr_layer_surface_v1_set_anchor(layer_surface, 0);
   zwlr_layer_surface_v1_set_keyboard_interactivity(
       layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
@@ -267,6 +276,7 @@ static void hide_switcher(void) {
 
   visible = false;
   is_configured = false;
+  watchdog_active = false;
   input_set_toggle_mode(
       false); /* Reset toggle state to avoid leaking into next session */
 
@@ -276,6 +286,18 @@ static void hide_switcher(void) {
 
   /* Reset workspace filter so it doesn't leak into the next session */
   app_state.filter_workspace = false;
+
+  /* Release exclusive keyboard focus before hiding/destroying the surface.
+   * The interactivity change is double-buffered (takes effect on commit).
+   * This ensures the compositor cleanly restores keyboard focus and
+   * re-synchronizes the seat modifier state on the next focused window,
+   * preventing stuck modifier keys in pointer-locked apps (games). */
+  if (layer_surface && surface) {
+    zwlr_layer_surface_v1_set_keyboard_interactivity(
+        layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
+    wl_surface_commit(surface);
+    wl_display_flush(display);
+  }
 
   if (config && config->follow_monitor) {
     destroy_panel();
@@ -352,10 +374,26 @@ static void show_switcher(bool is_linear) {
   app_state.cols = (app_state.count < max_cols) ? app_state.count : max_cols;
   zwlr_layer_surface_v1_set_size(layer_surface, app_state.width,
                                  app_state.height);
+  /* EXCLUSIVE keyboard interactivity: the compositor MUST give keyboard focus
+   * to this overlay-layer surface regardless of pointer state. This is critical
+   * when a fullscreen game has pointer lock active — ON_DEMAND would never
+   * grant focus because the pointer is trapped inside the game window.
+   * EXCLUSIVE is the correct semantic for transient alt-tab overlays and is
+   * what lock screens, launchers (wofi/rofi/bemenu), etc. use. */
   zwlr_layer_surface_v1_set_keyboard_interactivity(
-      layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND);
+      layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE);
 
   visible = true;
+
+  /* Start the safety watchdog timer. If the switcher hasn't been dismissed
+   * within SAFETY_TIMEOUT_SEC (timer resets on every navigation keypress),
+   * force an auto-dismiss. This catches edge cases like:
+   *  - Competing exclusive overlays preventing keyboard focus acquisition
+   *  - Modifier release events lost due to compositor quirks
+   *  - Multi-seat scenarios where keyboard events go to wrong seat */
+  clock_gettime(CLOCK_MONOTONIC, &watchdog_timestamp);
+  watchdog_active = true;
+
   wl_surface_set_buffer_scale(surface, output_scale);
   wl_surface_commit(surface);
   wl_display_flush(display);
@@ -900,6 +938,14 @@ static int run_daemon(const char *config_path) {
       }
     }
 
+    /* --- Reset safety watchdog on user navigation activity ---
+     * needs_render is set by keyboard handlers on Tab/Arrow presses,
+     * so it serves as a reliable activity indicator. Reset the timer
+     * before the render block consumes the flag. */
+    if (visible && watchdog_active && app_state.needs_render) {
+      clock_gettime(CLOCK_MONOTONIC, &watchdog_timestamp);
+    }
+
     /* --- Deferred render: one frame per loop iteration --- */
     if (visible && app_state.needs_render && is_configured) {
       app_state.needs_render = false;
@@ -927,6 +973,24 @@ static int run_daemon(const char *config_path) {
       }
 
       render_ui(&app_state, app_state.width, app_state.height, output_scale);
+    }
+
+    /* --- Safety timeout: auto-dismiss if stuck ---
+     * If the switcher has been visible for SAFETY_TIMEOUT_SEC without user
+     * activity, something went wrong (focus never granted, modifier events
+     * lost, etc.). Force teardown to avoid a permanently stuck overlay.
+     * The NONE interactivity set by hide_switcher() ensures the compositor
+     * re-synchronizes the seat modifier state on the next focused window,
+     * preventing dangling modifier keys in the underlying app. */
+    if (visible && watchdog_active) {
+      struct timespec now;
+      clock_gettime(CLOCK_MONOTONIC, &now);
+      double elapsed = (double)(now.tv_sec - watchdog_timestamp.tv_sec) +
+                       (double)(now.tv_nsec - watchdog_timestamp.tv_nsec) / 1e9;
+      if (elapsed >= (double)SAFETY_TIMEOUT_SEC) {
+        LOG("Safety timeout (%.0fs): auto-dismissing stuck switcher", elapsed);
+        hide_switcher();
+      }
     }
   }
 
