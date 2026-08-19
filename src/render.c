@@ -38,7 +38,7 @@ static const uint32_t icon_colors[] = {
 
 void render_set_config(Config *config) { cfg = config; }
 
-int create_shm_file(off_t size) {
+static int create_shm_file(off_t size) {
   int fd = -1;
 #ifdef __linux__
   fd = memfd_create("snappy-shm", MFD_CLOEXEC);
@@ -565,8 +565,8 @@ void calculate_dimensions(AppState *state, uint32_t *width, uint32_t *height) {
   *height = (rows * h) + ((rows - 1) * gap) + (pad * 2);
 
   /* Prevent Wayland 0x0 buffer crashes */
-  if (*width <= 0) *width = 10;
-  if (*height <= 0) *height = 10;
+  if (*width == 0) *width = 10;
+  if (*height == 0) *height = 10;
 }
 
 /* --- Buffer Lifecycle Management --- */
@@ -874,10 +874,10 @@ void render_ui(AppState *state, uint32_t logical_width, uint32_t logical_height,
     letter_tracker_init(&g_letter_tracker);
 
     for (int i = 0; i < state->count; i++) {
-      int r = i / max_cols;
+      int row = i / max_cols;
       int c = i % max_cols;
       double x = start_x + c * (cw + gap);
-      double y = start_y + r * (ch + gap);
+      double y = start_y + row * (ch + gap);
       draw_card(cr, &state->windows[i], x, y, i == state->selected_index);
     }
   }

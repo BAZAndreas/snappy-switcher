@@ -485,8 +485,8 @@ int update_window_list(AppState *state, Config *cfg, bool is_linear) {
   if (!json)
     return -1;
 
-  if (parse_clients(json, state, target_ws, cfg->ignore_pinned,
-                     cfg->ignore_special) < 0) {
+  if (parse_clients(json, state, target_ws, cfg ? cfg->ignore_pinned : false,
+                     cfg ? cfg->ignore_special : false) < 0) {
     free(json);
     return -1;
   }

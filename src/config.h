@@ -73,7 +73,7 @@ Config *load_config(void);
 Config *load_config_from(const char *path);
 
 /* Free config memory */
-void free_config(Config *config);
+void free_config(Config *cfg);
 
 /* Get default config (fallback values) */
 Config *get_default_config(void);

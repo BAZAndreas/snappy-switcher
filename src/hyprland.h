@@ -17,7 +17,7 @@ void app_state_free(AppState *state);
  * by workspace_id/address when is_linear is true.
  * Handles aggregation if Mode == CONTEXT.
  */
-int update_window_list(AppState *state, Config *config, bool is_linear);
+int update_window_list(AppState *state, Config *cfg, bool is_linear);
 
 /* Switch focus to window address */
 void switch_to_window(const char *address);
