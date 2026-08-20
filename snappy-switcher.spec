@@ -2,7 +2,7 @@
 # For Fedora Copr / RHEL / openSUSE
 
 Name:           snappy-switcher
-Version:        4.0.0
+Version:        4.5.0
 Release:        1%{?dist}
 Summary:        A fast, animated Alt+Tab window switcher for Hyprland
 
@@ -95,7 +95,7 @@ install -Dpm 644 snappy-switcher.service %{buildroot}%{_userunitdir}/snappy-swit
 %{_userunitdir}/snappy-switcher.service
 
 %changelog
-* Wed Jun 03 2026 OpalAayan <YougurtMyFace@proton.me> - 4.0.0
+* Wed Jun 03 2026 OpalAayan <YougurtMyFace@proton.me> - 4.5.0
 - Added support for latest/Old Hyprland
 - Fixed Dispatch
 - Made this Alt Tab switcher to window switcher
